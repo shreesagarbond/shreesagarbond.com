@@ -169,9 +169,8 @@
     </div>
 
     <script>
-      // 1. यहाँ पर आपको अपनी Supabase URL और ANON KEY डालनी है
-     https://bsblmbozpgidvcujnkyb.supabase.co
-      const SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzYmxtYm96cGdpZHZjdWpua3liIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzMzc0NTksImV4cCI6MjA3MDkxMzQ1OX0.sFu7BCh5MqhvL8B0161AkDHOMsF5f61KOx0YTQU5MCg
+      const SUPABASE_URL = 'https://bsblmbozpgidvcujnkyb.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzYmxtYm96cGdpZHZjdWpua3liIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzMzc0NTksImV4cCI6MjA3MDkxMzQ1OX0.sFu7BCh5MqhvL8B0161AkDHOMsF5f61KOx0YTQU5MCg';
       
       const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       
@@ -179,7 +178,6 @@
       const mainApp = document.getElementById('main-app');
       const authStatus = document.getElementById('auth-status');
       
-      // यह जांच करेगा कि उपयोगकर्ता लॉग इन है या नहीं
       supabase.auth.onAuthStateChange((event, session) => {
           if (session) {
               authSection.style.display = 'none';
@@ -190,7 +188,6 @@
           }
       });
 
-      // 2. यहाँ पर आपके साइन अप और लॉगिन फ़ंक्शंस हैं
       async function signUp() {
           const email = document.getElementById('email').value;
           const password = document.getElementById('password').value;
@@ -226,7 +223,6 @@
         }
       }
       
-      // यह बिल बनाने वाले फ़ंक्शंस हैं
       function calculateRowTotal(input) {
           const row = input.closest('tr');
           const qty = row.querySelector('input[type="number"]:nth-of-type(1)').value;
@@ -261,7 +257,6 @@
       }
       function saveBill() {
           alert("यह फंक्शन बिल को डेटाबेस में सेव करेगा।");
-          // यहाँ हम Supabase में डेटा को स्टोर करने के लिए कोड लिखेंगे
       }
       function printBill() {
           window.print();

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill Generation System</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Arial', sans-serif; margin: 0; padding: 20px; background-color: #f7f7f7; }
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .auth-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px;
+        }
+        .main-app {
+            display: none;
+        }
+        .input-group {
+            margin-bottom: 15px;
+            width: 100%;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .input-group input {
+            width: 95%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .btn-group button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn-group button:hover {
+            background-color: #0056b3;
+        }
+        .form-section h2 {
+            margin-bottom: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .invoice-actions {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .invoice-actions button {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .invoice-actions button:hover {
+            background-color: #218838;
+        }
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .invoice-table th, .invoice-table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        .invoice-table th {
+            background-color: #f2f2f2;
+        }
+        .invoice-table input, .invoice-table select {
+            width: 100%;
+            box-sizing: border-box;
+            border: none;
+        }
+        .total-section {
+            margin-top: 20px;
+            text-align: right;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container auth-section" id="auth-section">
+        <h2>लॉग इन या साइन अप करें</h2>
+        <div class="input-group">
+            <label for="email">ईमेल</label>
+            <input type="email" id="email" placeholder="अपना ईमेल दर्ज करें">
+        </div>
+        <div class="input-group">
+            <label for="password">पासवर्ड</label>
+            <input type="password" id="password" placeholder="अपना पासवर्ड दर्ज करें">
+        </div>
+        <div class="btn-group">
+            <button onclick="signIn()">लॉग इन करें</button>
+            <button onclick="signUp()">साइन अप करें</button>
+        </div>
+        <p id="auth-status" style="color: red;"></p>
+    </div>
+
+    <div class="container main-app" id="main-app">
+        <div class="invoice-actions">
+            <button id="logout-btn" onclick="signOut()">लॉग आउट</button>
+            <div>
+                <button onclick="saveBill()">बिल सेव करें</button>
+                <button onclick="printBill()">बिल प्रिंट करें</button>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h2>नया बिल बनाएँ</h2>
+            <div class="input-group">
+                <label for="customer-name">ग्राहक का नाम</label>
+                <input type="text" id="customer-name" placeholder="ग्राहक का नाम दर्ज करें">
+            </div>
+            <div class="input-group">
+                <label for="bill-date">दिनांक</label>
+                <input type="date" id="bill-date">
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h2>इनवॉइस आइटम</h2>
+            <table class="invoice-table" id="item-table">
+                <thead>
+                    <tr>
+                        <th>आइटम का नाम</th>
+                        <th>मात्रा</th>
+                        <th>मूल्य</th>
+                        <th>कुल</th>
+                        <th>कार्रवाई</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" placeholder="आइटम का नाम"></td>
+                        <td><input type="number" value="1" oninput="calculateRowTotal(this)"></td>
+                        <td><input type="number" value="0" oninput="calculateRowTotal(this)"></td>
+                        <td><span class="total-amount">0.00</span></td>
+                        <td><button onclick="removeRow(this)">हटाएँ</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button onclick="addRow()">आइटम जोड़ें</button>
+        </div>
+        
+        <div class="total-section">
+            <p><strong>कुल योग: ₹<span id="grand-total">0.00</span></strong></p>
+        </div>
+    </div>
+
+    <script>
+      // 1. यहाँ पर आपको अपनी Supabase URL और ANON KEY डालनी है
+     https://bsblmbozpgidvcujnkyb.supabase.co
+      const SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzYmxtYm96cGdpZHZjdWpua3liIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzMzc0NTksImV4cCI6MjA3MDkxMzQ1OX0.sFu7BCh5MqhvL8B0161AkDHOMsF5f61KOx0YTQU5MCg
+      
+      const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      
+      const authSection = document.getElementById('auth-section');
+      const mainApp = document.getElementById('main-app');
+      const authStatus = document.getElementById('auth-status');
+      
+      // यह जांच करेगा कि उपयोगकर्ता लॉग इन है या नहीं
+      supabase.auth.onAuthStateChange((event, session) => {
+          if (session) {
+              authSection.style.display = 'none';
+              mainApp.style.display = 'block';
+          } else {
+              authSection.style.display = 'flex';
+              mainApp.style.display = 'none';
+          }
+      });
+
+      // 2. यहाँ पर आपके साइन अप और लॉगिन फ़ंक्शंस हैं
+      async function signUp() {
+          const email = document.getElementById('email').value;
+          const password = document.getElementById('password').value;
+          authStatus.textContent = 'साइन अप हो रहा है...';
+          const { error } = await supabase.auth.signUp({
+              email: email,
+              password: password,
+          });
+          if (error) {
+              authStatus.textContent = "साइन अप विफल: " + error.message;
+          } else {
+              authStatus.textContent = "साइन अप सफल! कृपया अपने ईमेल पर पुष्टि लिंक जाँचें।";
+          }
+      }
+      
+      async function signIn() {
+          const email = document.getElementById('email').value;
+          const password = document.getElementById('password').value;
+          authStatus.textContent = 'लॉग इन हो रहा है...';
+          const { error } = await supabase.auth.signInWithPassword({
+              email: email,
+              password: password,
+          });
+          if (error) {
+              authStatus.textContent = "लॉग इन विफल: " + error.message;
+          }
+      }
+      
+      async function signOut() {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            alert("लॉग आउट विफल: " + error.message);
+        }
+      }
+      
+      // यह बिल बनाने वाले फ़ंक्शंस हैं
+      function calculateRowTotal(input) {
+          const row = input.closest('tr');
+          const qty = row.querySelector('input[type="number"]:nth-of-type(1)').value;
+          const price = row.querySelector('input[type="number"]:nth-of-type(2)').value;
+          const total = (qty * price).toFixed(2);
+          row.querySelector('.total-amount').textContent = total;
+          calculateGrandTotal();
+      }
+      function calculateGrandTotal() {
+          let grandTotal = 0;
+          document.querySelectorAll('.total-amount').forEach(span => {
+              grandTotal += parseFloat(span.textContent);
+          });
+          document.getElementById('grand-total').textContent = grandTotal.toFixed(2);
+      }
+      function addRow() {
+          const tableBody = document.querySelector('#item-table tbody');
+          const newRow = document.createElement('tr');
+          newRow.innerHTML = `
+              <td><input type="text" placeholder="आइटम का नाम"></td>
+              <td><input type="number" value="1" oninput="calculateRowTotal(this)"></td>
+              <td><input type="number" value="0" oninput="calculateRowTotal(this)"></td>
+              <td><span class="total-amount">0.00</span></td>
+              <td><button onclick="removeRow(this)">हटाएँ</button></td>
+          `;
+          tableBody.appendChild(newRow);
+      }
+      function removeRow(button) {
+          const row = button.closest('tr');
+          row.remove();
+          calculateGrandTotal();
+      }
+      function saveBill() {
+          alert("यह फंक्शन बिल को डेटाबेस में सेव करेगा।");
+          // यहाँ हम Supabase में डेटा को स्टोर करने के लिए कोड लिखेंगे
+      }
+      function printBill() {
+          window.print();
+      }
+    </script>
+</body>
+</html>
